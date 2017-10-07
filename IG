@@ -1,0 +1,20 @@
+#!/usr/bin/env ruby
+#IG.rb
+
+load 'IG_lib'
+
+Lib.welcome_user
+
+token = Lib.collect_token
+
+InstagramApi.config do |config|
+  config.access_token = token
+end
+
+puts "Configuration successful (#{InstagramApi.user.show.data.username}). What would you like to do now?\n"
+
+Lib.display_options
+
+selected_option = Lib.collect_option(gets.chomp, token)
+
+Lib.collect_option(selected_option, token)

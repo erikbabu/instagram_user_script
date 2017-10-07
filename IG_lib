@@ -1,0 +1,170 @@
+#!/usr/bin/env ruby
+#IG_lib.rb
+
+module Lib
+  require 'instagram_api'
+  require 'net/http'
+  require 'json'
+
+  def Lib.welcome_user
+    puts "Welcome!\nThis program aims to give a user their follower breakdown."
+    puts "To begin, please enter your access token."
+    puts "If you don't have one, simply follow the link below and generate one.\n\n"
+    puts "http://services.chrisriversdesign.com/instagram-token/\n\n"
+    puts "To quit the program at any time, just type in quit.\n\n"
+  end
+
+  #validates and returns user's token
+  def Lib.collect_token
+    puts "Your token: "
+    token = gets.chomp
+    Lib.check_quit(token)
+    return token
+  end
+
+  #quits program if quit command entered
+  def Lib.check_quit(input)
+    if input == "quit" then
+      puts "Thank you for using the program. Goodbye :)\n"
+      exit
+    end
+  end
+
+  #shows the possible options the user can try
+  def Lib.display_options
+    puts "\ncaptions - shows a list of all your captions and likes for your posts"
+    puts "about_me - summary of your information"
+    puts "likes_info - shows total likes and average likes per post"
+    puts "\n"
+    #allows display without going to new line
+    print "Your selection: "
+    $stdout.flush
+  end
+
+  #displays output based on user selection
+  def Lib.collect_option(input, token)
+    Lib.check_quit(input)
+    case input
+    when "captions"
+      Lib.disp_captions(token)
+    when "about_me"
+      Lib.disp_bio_info(token)
+    when "likes_info"
+      Lib.disp_likes_info(token)
+    else
+      puts "Sorry. This is not a valid option. Please try again.\n\n"
+      Lib.display_main_menu(token)
+    end
+  end
+
+  #shows the user their possible options
+  def Lib.display_main_menu(token)
+    Lib.display_options
+    Lib.collect_option(gets.chomp, token)
+  end
+
+
+  #shows user all likes and average per post
+  def Lib.disp_likes_info(token)
+    num_posts = InstagramApi.user.show.data.counts.media
+    descending_counter = num_posts
+
+    total_likes = 0
+
+    url = 'https://api.instagram.com/v1/users/self/media/recent/?access_token='+token
+    uri = URI(url)
+    response = Net::HTTP.get(uri)
+    json = JSON.parse(response)
+
+    #parses records in blocks of 20 at a time
+    while (descending_counter > 19) do
+      for i in 0..19 do
+        total_likes += json['data'][i]['likes']['count']
+      end
+
+      #determine next_max_id and paginate on that
+      next_max_id = json['pagination']['next_max_id']
+      updated_url = url + '&max_id=' + next_max_id
+      uri = URI(updated_url)
+      response = Net::HTTP.get(uri)
+      json = JSON.parse(response)
+
+      descending_counter -= 20
+    end
+
+    #less than 20 records remaining
+    for i in 0..descending_counter - 1 do
+      total_likes += json['data'][i]['likes']['count']
+    end
+
+    puts "Number of posts: #{num_posts}"
+    puts "Total likes = #{total_likes}"
+    puts "Average number of likes = #{total_likes/num_posts}"
+
+    Lib.display_main_menu(token)
+  end
+
+  #meant to show list of pages the user follows
+  def Lib.disp_follows
+    puts "TODO: Implement. Difficult because of changes to IG API"
+  end
+
+  #meant to show a list of pages that follow the user
+  def Lib.disp_followed_by
+    puts "TODO: Implement. Difficult because of changes to IG API"
+  end
+
+  #shows a list of all the captions as well as likes the user has recieved for their posts
+  def Lib.disp_captions(token)
+    num_posts = InstagramApi.user.show.data.counts.media
+
+    url = 'https://api.instagram.com/v1/users/self/media/recent/?access_token='+token
+    uri = URI(url)
+    response = Net::HTTP.get(uri)
+    json = JSON.parse(response)
+
+    #parses records in blocks of 20 at a time
+    while (num_posts > 19) do
+      for i in 0..19 do
+        puts "Likes: #{json['data'][i]['likes']['count']}, Caption: #{json['data'][i]['caption']['text']}\n\n"
+      end
+
+      #determine next_max_id and paginate on that
+      next_max_id = json['pagination']['next_max_id']
+      updated_url = url + '&max_id=' + next_max_id
+      uri = URI(updated_url)
+      response = Net::HTTP.get(uri)
+      json = JSON.parse(response)
+
+      num_posts -= 20
+    end
+
+    #less than 20 records remaining
+    for i in 0..num_posts - 1 do
+      puts "Likes: #{json['data'][i]['likes']['count']}, Caption: #{json['data'][i]['caption']['text']}\n\n"
+    end
+
+    Lib.display_main_menu(token)
+  end
+
+  #shows basic information about the user
+  def Lib.disp_bio_info(token)
+    username = InstagramApi.user.show.data.username
+    full_name = InstagramApi.user.show.data.full_name
+    num_followers = InstagramApi.user.show.data.counts.followed_by
+    num_follows = InstagramApi.user.show.data.counts.follows
+    bio = InstagramApi.user.show.data.bio.split("\n")
+
+    puts "\nUsername: #{username}"
+    puts "Full name: #{full_name}"
+    puts "Followers: #{num_followers}"
+    puts "Following: #{num_follows}"
+
+    puts "Bio:\n"
+    bio.each do |line|
+      puts line
+    end
+
+    Lib.display_main_menu(token)
+  end
+end
