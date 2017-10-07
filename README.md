@@ -1,3 +1,5 @@
+If you have not got the Instagram API, enter the command 'sudo gem install instagram_api_client'
+
 To execute the program type './IG' in your terminal
 
 If you get a permission error type 'sudo chmod 777 IG' and then './IG'
@@ -18,5 +20,3 @@ Problems encountered
 
 
 API source - https://github.com/agilie/instagram_api_gem
-
-
